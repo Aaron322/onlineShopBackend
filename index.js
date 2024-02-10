@@ -10,9 +10,7 @@ const cors = require('cors')
 app.use(express.json())
 app.use(cors())
 //connect database
-mongoose.connect(
-  'mongodb+srv://onlineshopdev:HEk8b7uXYM4YuGGq@cluster0.ahapuig.mongodb.net/onlineshopdev:'
-)
+mongoose.connect()
 
 app.get('/', (req, res) => {
   res.send('running')
@@ -109,6 +107,13 @@ app.post('/removeproduct', async (req, res) => {
   })
   console.log('remove product')
   res.json({ success: true, name: req.body.name })
+})
+
+//display all products
+app.get('/allproducts', async (req, res) => {
+  let products = await Product.find({})
+  console.log('all product')
+  res.send(products)
 })
 
 app.listen(port, (err) => {
