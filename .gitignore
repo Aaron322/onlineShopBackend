@@ -131,3 +131,5 @@ dist
 
 # ignore upload files
 upload
+
+**/.DS_Store
