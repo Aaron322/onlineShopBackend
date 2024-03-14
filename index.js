@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken')
 const multer = require('multer')
 const path = require('path')
 const cors = require('cors')
+const bcrypt = require('bcryptjs')
 
 app.use(express.json())
 app.use(cors())
@@ -108,10 +109,15 @@ app.post('/signup', async (req, res) => {
   for (let i = 0; i < 300; i++) {
     cart[i] = 0
   }
+
+  //Hash the pwd
+  const salt = await bcrypt.genSalt(10)
+  const hashedPassword = await bcrypt.hash(req.body.password, salt)
+
   const user = new Users({
     name: req.body.name,
     email: req.body.email,
-    password: req.body.password,
+    password: hashedPassword,
     cartData: cart,
   })
   await user.save()
@@ -128,22 +134,30 @@ app.post('/signup', async (req, res) => {
 
 //API for user login
 app.post('/login', async (req, res) => {
-  let user = await Users.findOne({ email: req.body.email })
-  if (user) {
-    const passCheck = req.body.password === user.password
-    if (passCheck) {
-      const data = {
-        user: {
-          id: user.id,
-        },
-      }
-      const token = jwt.sign(data, 'secret_ecom')
-      res.json({ success: true, token })
-    } else {
-      res.json({ success: false, errors: 'Wrong Pasword' })
+  try {
+    let user = await Users.findOne({ email: req.body.email })
+    if (!user) {
+      return res.json({ success: false, errors: 'Wrong Email Address' })
     }
-  } else {
-    res.json({ success: false, errors: 'Wrong Email Address' })
+
+    // Compare the hashed password with the one provided in the request
+    const isMatch = await bcrypt.compare(req.body.password, user.password)
+    if (!isMatch) {
+      return res.json({ success: false, errors: 'Wrong Password' })
+    }
+
+    // If password matches, proceed to token generation
+    const data = {
+      user: {
+        id: user.id,
+      },
+    }
+    const token = jwt.sign(data, 'secret_ecom') // Use an environment variable for the secret in production
+
+    res.json({ success: true, token })
+  } catch (err) {
+    console.error(err.message)
+    res.status(500).send('Server error')
   }
 })
 
